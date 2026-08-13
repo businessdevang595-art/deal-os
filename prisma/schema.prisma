@@ -1,0 +1,204 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  password      String?
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  properties    Property[]
+  buyers        Buyer[]
+  deals         Deal[]
+  siteVisits    SiteVisit[]
+  notifications Notification[]
+  activityEvents ActivityEvent[]
+}
+
+model Property {
+  id              String   @id @default(cuid())
+  userId          String
+  title           String
+  propertyType    String
+  address         String
+  locality        String
+  city            String
+  state           String
+  pincode         String
+  bedrooms        Int
+  bathrooms       Int
+  area            Float
+  floor           Int?
+  totalFloors     Int?
+  parking         Int?
+  furnishing      String?
+  facing          String?
+  propertyAge     Int?
+  askingPrice     Float
+  negotiable      Boolean  @default(true)
+  maintenance     Float?
+  possessionStatus String?
+  description     String?
+  amenities       String[] // Store as JSON or Array
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  images          PropertyImage[]
+  deals           Deal[]
+  siteVisits      SiteVisit[]
+}
+
+model PropertyImage {
+  id         String   @id @default(cuid())
+  propertyId String
+  url        String
+  isPrimary  Boolean  @default(false)
+  order      Int      @default(0)
+
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+}
+
+model Buyer {
+  id              String   @id @default(cuid())
+  userId          String
+  name            String
+  phone           String?
+  email           String?
+  minBudget       Float?
+  maxBudget       Float?
+  propertyType    String?
+  bedrooms        Int?
+  preferredLocations String[]
+  minArea         Float?
+  maxArea         Float?
+  parkingRequired Boolean?
+  furnishing      String?
+  possession      String?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  priorities      BuyerPriority?
+  deals           Deal[]
+  siteVisits      SiteVisit[]
+}
+
+model BuyerPriority {
+  id       String @id @default(cuid())
+  buyerId  String @unique
+  price    Int    @default(3) // 1-5 scale
+  location Int    @default(3)
+  size     Int    @default(3)
+  parking  Int    @default(3)
+  bedrooms Int    @default(3)
+  possession Int  @default(3)
+
+  buyer    Buyer  @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+}
+
+model Deal {
+  id          String   @id @default(cuid())
+  userId      String
+  propertyId  String
+  buyerId     String
+  stage       String   @default("Qualified") // Qualified, Matched, Site Visit, Offer, Negotiation, Closing, Closed, Lost
+  amount      Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property    Property    @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  buyer       Buyer       @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  offers      Offer[]
+  closingTasks ClosingTask[]
+}
+
+model Offer {
+  id          String   @id @default(cuid())
+  dealId      String
+  amount      Float
+  submittedBy String
+  date        DateTime @default(now())
+  notes       String?
+  conditions  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  deal        Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+}
+
+model ClosingTask {
+  id          String   @id @default(cuid())
+  dealId      String
+  title       String
+  isCompleted Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  deal        Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+}
+
+model SiteVisit {
+  id          String   @id @default(cuid())
+  userId      String
+  buyerId     String
+  propertyId  String
+  date        DateTime
+  status      String   @default("Scheduled") // Scheduled, Completed, Cancelled, No-show
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  buyer       Buyer    @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  feedback    SiteVisitFeedback?
+}
+
+model SiteVisitFeedback {
+  id          String   @id @default(cuid())
+  siteVisitId String   @unique
+  reaction    String?  // Very Interested, Interested, Neutral, Not Interested
+  ratingLocation Int?
+  ratingLayout   Int?
+  ratingPrice    Int?
+  ratingParking  Int?
+  ratingAmenities Int?
+  objections  String[]
+  nextAction  String?
+
+  siteVisit   SiteVisit @relation(fields: [siteVisitId], references: [id], onDelete: Cascade)
+}
+
+model ActivityEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  message   String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
